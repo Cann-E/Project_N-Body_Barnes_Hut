@@ -11,7 +11,7 @@ A hybrid CPU/GPU implementation of the Barnes-Hut tree algorithm for N-body simu
 ## To Compile and Run on GPU Server
 
 ```bash
-mk barnes_hut
+mkdir barnes_hut
 ```
 ```bash
 cd barnes_hut
@@ -56,3 +56,5 @@ and add this in the file and save it.
     ],
     "version": 4
 }
+
+#### This will allow to use open source file on the server.
