@@ -27,8 +27,11 @@ make clean
   ```
 ### 3. Checking the code time
 ```bash
-./nbody_sim
+./make run
 ```
+### 4. Checking the code visualizer canvas 2D
+
+Go to this link: http://localhost:8080/visualizer.html
 
 ### Note:
 
