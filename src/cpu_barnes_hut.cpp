@@ -1,5 +1,8 @@
 #include "barnes_hut.h"
 #include <cmath>
+#include <iostream>
+#include <fstream>
+#include <limits>
 
 int get_octant(const TreeNode& node, const Particle& p) {
     int octant = 0;
@@ -9,9 +12,10 @@ int get_octant(const TreeNode& node, const Particle& p) {
     return octant;
 }
 
-void insert_particle(TreeNode& node, Particle* p) {
+void insert_particle(TreeNode& node, Particle* p, int depth = 0) {
     if (node.particle == nullptr && node.children[0] == nullptr) {
         node.particle = p;
+        node.depth = depth;
         return;
     }
 
@@ -24,11 +28,12 @@ void insert_particle(TreeNode& node, Particle* p) {
             
             node.children[i] = std::make_unique<TreeNode>();
             node.children[i]->bounds = Bounds(new_center, node.bounds.half_size * 0.5f);
+            node.children[i]->depth = depth + 1;
         }
-        insert_particle(*node.children[get_octant(node, *node.particle)], node.particle);
+        insert_particle(*node.children[get_octant(node, *node.particle)], node.particle, depth + 1);
         node.particle = nullptr;
     }
-    insert_particle(*node.children[get_octant(node, *p)], p);
+    insert_particle(*node.children[get_octant(node, *p)], p, depth + 1);
 }
 
 void compute_center_of_mass(TreeNode& node) {
@@ -74,6 +79,52 @@ void compute_force_barnes_hut(const Particle& p, const TreeNode& node, Vec3& for
     }
 }
 
+// Visualization function implementations
+void save_particles_binary(const std::vector<Particle>& particles, const std::string& filename) {
+    std::ofstream out(filename, std::ios::binary);
+    if (!out) {
+        std::cerr << "Error opening " << filename << " for writing\n";
+        return;
+    }
+
+    // Write header with particle count
+    uint32_t count = particles.size();
+    out.write(reinterpret_cast<const char*>(&count), sizeof(uint32_t));
+
+    // Write scaled particle positions
+    for (const auto& p : particles) {
+        Vec3 scaled_pos = p.position * VISUALIZATION_SCALE;
+        out.write(reinterpret_cast<const char*>(&scaled_pos), sizeof(Vec3));
+    }
+    std::cout << "Saved " << count << " particles to " << filename << "\n";
+}
+
+void save_tree_structure(const TreeNode& root, const std::string& filename) {
+    std::ofstream out(filename);
+    if (!out) {
+        std::cerr << "Error opening " << filename << " for writing\n";
+        return;
+    }
+
+    std::vector<std::pair<Bounds, int>> boundaries;
+    root.collect_boundaries(boundaries);
+    
+    out << "[";
+    for (size_t i = 0; i < boundaries.size(); ++i) {
+        const auto& [bounds, depth] = boundaries[i];
+        out << "{"
+            << "\"x\":" << bounds.center.x * VISUALIZATION_SCALE << ","
+            << "\"y\":" << bounds.center.y * VISUALIZATION_SCALE << ","
+            << "\"width\":" << (bounds.half_size.x * 2 * VISUALIZATION_SCALE) << ","
+            << "\"height\":" << (bounds.half_size.y * 2 * VISUALIZATION_SCALE) << ","
+            << "\"depth\":" << depth
+            << "}";
+        if (i < boundaries.size() - 1) out << ",";
+    }
+    out << "]";
+    std::cout << "Saved tree structure to " << filename << "\n";
+}
+
 void cpu_barnes_hut(std::vector<Particle>& particles, float theta) {
     TreeNode root;
     
@@ -106,4 +157,8 @@ void cpu_barnes_hut(std::vector<Particle>& particles, float theta) {
         compute_force_barnes_hut(p, root, force, theta);
         p.force = force;
     }
+
+    // Save visualization data
+    save_particles_binary(particles, "web/particles.bin");
+    save_tree_structure(root, "web/tree_structure.json");
 }
