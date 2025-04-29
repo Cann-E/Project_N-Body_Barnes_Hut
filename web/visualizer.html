@@ -1,0 +1,217 @@
+<!--For 2D Canvas webGPU-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barnes-Hut 2D Visualization</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        canvas { display: block; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: #0f0;
+            font-family: Arial;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="controls">
+        <div>Tree Depth: <input type="range" id="depthSlider" min="0" max="10" value="5"></div>
+        <div>Particle Size: <input type="range" id="sizeSlider" min="1" max="10" value="3"></div>
+        <button id="resetBtn">Reset View</button>
+    </div>
+    <div id="status">Loading data...</div>
+
+    <script>
+        // Configuration
+        const config = {
+            particleColor: '#FF5555',
+            treeColor: 'rgba(100, 100, 255, 0.3)',
+            axisColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: '#000000',
+            defaultScale: 0.8
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let treeNodes = [];
+        let scale = config.defaultScale;
+        let offsetX = 0, offsetY = 0;
+        let maxDepth = 5;
+        let particleSize = 3;
+
+        // Initialize
+        function init() {
+            resizeCanvas();
+            loadData();
+            setupEventListeners();
+            window.requestAnimationFrame(render);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        async function loadData() {
+            try {
+                document.getElementById('status').textContent = "Loading particle data...";
+                
+                // Load particle data
+                const particlesResponse = await fetch('particles.bin');
+                if (!particlesResponse.ok) throw new Error("Failed to load particles.bin");
+                
+                const particlesData = await particlesResponse.arrayBuffer();
+                const particleCount = new Uint32Array(particlesData.slice(0, 4))[0];
+                particles = new Float32Array(particlesData.slice(4));
+                
+                document.getElementById('status').textContent = `Loaded ${particleCount} particles`;
+                console.log(`Loaded ${particleCount} particles`);
+                
+                // Load tree structure
+                const treeResponse = await fetch('tree_structure.json');
+                if (!treeResponse.ok) throw new Error("Failed to load tree_structure.json");
+                
+                treeNodes = await treeResponse.json();
+                console.log(`Loaded ${treeNodes.length} tree nodes`);
+
+            } catch (error) {
+                console.error("Error loading data:", error);
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                document.getElementById('status').style.color = 'red';
+            }
+        }
+
+        function setupEventListeners() {
+            // Window resize
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Depth control
+            document.getElementById('depthSlider').addEventListener('input', (e) => {
+                maxDepth = parseInt(e.target.value);
+            });
+            
+            // Particle size control
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                particleSize = parseInt(e.target.value);
+            });
+            
+            // Reset view
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                scale = config.defaultScale;
+                offsetX = 0;
+                offsetY = 0;
+            });
+            
+            // Mouse controls
+            let isDragging = false;
+            let lastX = 0, lastY = 0;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                offsetX += (e.clientX - lastX) / (scale * canvas.width);
+                offsetY += (e.clientY - lastY) / (scale * canvas.height);
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+            
+            canvas.addEventListener('mouseup', () => isDragging = false);
+            canvas.addEventListener('mouseleave', () => isDragging = false);
+            
+            // Zoom controls
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = 0.1;
+                const mouseX = (e.clientX / canvas.width - 0.5) * 2 - offsetX;
+                const mouseY = (e.clientY / canvas.height - 0.5) * 2 - offsetY;
+                
+                if (e.deltaY < 0) {
+                    scale *= (1 + zoomFactor);
+                } else {
+                    scale *= (1 - zoomFactor);
+                }
+                
+                scale = Math.max(0.1, Math.min(scale, 10));
+                
+                // Adjust offset to zoom toward mouse position
+                offsetX += mouseX * zoomFactor * (e.deltaY < 0 ? -1 : 1);
+                offsetY += mouseY * zoomFactor * (e.deltaY < 0 ? -1 : 1);
+            });
+        }
+
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = config.backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const viewScale = Math.min(canvas.width, canvas.height) * scale * 0.5;
+            
+            // Draw axes
+            ctx.strokeStyle = config.axisColor;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            // X-axis
+            ctx.moveTo(0, centerY + offsetY * viewScale);
+            ctx.lineTo(canvas.width, centerY + offsetY * viewScale);
+            // Y-axis
+            ctx.moveTo(centerX + offsetX * viewScale, 0);
+            ctx.lineTo(centerX + offsetX * viewScale, canvas.height);
+            ctx.stroke();
+            
+            // Draw tree nodes
+            ctx.strokeStyle = config.treeColor;
+            ctx.lineWidth = 1;
+            treeNodes.forEach(node => {
+                if (node.depth > maxDepth) return;
+                
+                const x = centerX + (node.x + offsetX) * viewScale;
+                const y = centerY + (node.y + offsetY) * viewScale;
+                const width = node.width * viewScale;
+                const height = node.height * viewScale;
+                
+                ctx.strokeRect(x - width/2, y - height/2, width, height);
+            });
+            
+            // Draw particles
+            ctx.fillStyle = config.particleColor;
+            for (let i = 0; i < particles.length; i += 3) {
+                const x = centerX + (particles[i] + offsetX) * viewScale;
+                const y = centerY + (particles[i+1] + offsetY) * viewScale;
+                
+                if (x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, particleSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            window.requestAnimationFrame(render);
+        }
+
+        init();
+    </script>
+</body>
+</html>
