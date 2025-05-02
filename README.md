@@ -8,9 +8,8 @@ A GPU-accelerated N-body gravity simulation using the Barnes-Hut algorithm (O(N 
 
 - 🪐 **Realistic galaxy simulation** with proper orbital velocities
 - ⚡ **CUDA-accelerated** octree construction and force calculations
-- 🌌 **Interactive 3D visualization** with velocity-based coloring
+- 🌌 **3D visualization** with velocity-based coloring
 - 📊 **Benchmark mode** for performance analysis
-- 🎥 **Video export support** (see instructions below)
 
 ## Requirements
 
@@ -19,6 +18,7 @@ A GPU-accelerated N-body gravity simulation using the Barnes-Hut algorithm (O(N 
 - OpenGL/GLUT libraries
 - GLEW (for OpenGL extensions)
 - FFmpeg (for video capture)
+- MobaXterm for rendering in ssh
 
 ## Installation & Usage
 
@@ -31,7 +31,7 @@ cd barnes-hut-sim
 make
 
 # Run with visualization (ESC to quit)
-make run
+make visualize
 
 # Benchmark mode (no visualization)
-make benchmark N=50000
+make benchmark
