@@ -1,63 +1,37 @@
-# Barnes-Hut N-Body Simulation
+# Barnes-Hut N-Body Simulation with CUDA & OpenGL
 
-A hybrid CPU/GPU implementation of the Barnes-Hut tree algorithm for N-body simulations, with performance benchmarks.
+![Barnes-Hut Simulation Demo](barnes_hut_visual.mp4)
+
+A GPU-accelerated N-body gravity simulation using the Barnes-Hut algorithm (O(N log N) complexity) with real-time OpenGL visualization.
 
 ## Features
-- **CPU Direct** (O(N²)) - Baseline brute-force method
-- **CPU Barnes-Hut** (O(N log N)) - Octree-based approximation
-- **GPU Barnes-Hut** (O(N log N)) - CUDA-accelerated version
-- **Auto-benchmarking** with time and speedup reporting
 
-## To Compile and Run on GPU Server
+- 🪐 **Realistic galaxy simulation** with proper orbital velocities
+- ⚡ **CUDA-accelerated** octree construction and force calculations
+- 🌌 **Interactive 3D visualization** with velocity-based coloring
+- 📊 **Benchmark mode** for performance analysis
+- 🎥 **Video export support** (see instructions below)
+
+## Requirements
+
+- NVIDIA GPU with CUDA support
+- CUDA Toolkit (v11.0+ recommended)
+- OpenGL/GLUT libraries
+- GLEW (for OpenGL extensions)
+- FFmpeg (for video capture)
+
+## Installation & Usage
 
 ```bash
-mkdir barnes_hut
-```
-```bash
-cd barnes_hut
-```
+# Clone repository
+git clone https://github.com/yourusername/barnes-hut-sim.git
+cd barnes-hut-sim
 
-### 1. For cleaning tmp files
-```bash
-make clean
-```
-### 2. After making changes to code
- ```bash
- make
-  ```
-### 3. Checking the code time
-```bash
-./make run
-```
-### 4. Checking the code visualizer canvas 2D
+# Build (default N=10000 particles)
+make
 
-Go to this link: http://localhost:8080/visualizer.html
+# Run with visualization (ESC to quit)
+make run
 
-### Note:
-
-Since, there are bit restriction on GPU Server, the code will compile but on .h .cpp files, it'll say 
-"cannot open source file" on includes line If working on VS code studio.
-there is a way to fix but Github will hide this file.
-
-Create folder " .vscode " folder under barnes_hut, Then create file under .vscode name it " c_cpp_properties.json "
-
-and add this in the file and save it.
-
-{
-    "configurations": [
-        {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**"
-            ],
-            "defines": [],
-            "compilerPath": "/usr/bin/g++",
-            "cStandard": "c17",
-            "cppStandard": "c++14",
-            "intelliSenseMode": "linux-gcc-x64"
-        }
-    ],
-    "version": 4
-}
-
-#### This will allow to use open source file on the server.
+# Benchmark mode (no visualization)
+make benchmark N=50000
