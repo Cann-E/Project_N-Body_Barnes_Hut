@@ -18,7 +18,6 @@ A GPU-accelerated N-body gravity simulation using the Barnes-Hut algorithm (O(N 
 - CUDA Toolkit (v11.0+ recommended)
 - OpenGL/GLUT libraries
 - GLEW (for OpenGL extensions)
-- FFmpeg (for video capture)
 - MobaXterm for rendering in ssh
 
 ## Installation & Usage
