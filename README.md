@@ -1,5 +1,5 @@
 # Barnes-Hut N-Body Simulation with CUDA & OpenGL
-![Barnes-Hut Simulation Demo](barnes_hut_visual.mp4)
+![Barnes-Hut Simulation Demo](barnes.png)
 ![Barnes-Hut Simulation Demo](barnes_hut_visual.mp4)
 
 A GPU-accelerated N-body gravity simulation using the Barnes-Hut algorithm (O(N log N) complexity) with real-time OpenGL visualization.
